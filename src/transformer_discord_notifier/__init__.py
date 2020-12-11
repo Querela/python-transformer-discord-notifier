@@ -63,6 +63,8 @@ class DiscordProgressCallback(TrainerCallback):
     # --------------------------------
 
     def _load_credentials(self):
+        """Try to load missing Discord configs (token, channel) from
+        environment variables."""
         LOGGER.debug("Load credentials from env vars ...")
         if not self._discord_token:
             token = os.environ.get("DISCORD_TOKEN", None)
@@ -83,6 +85,25 @@ class DiscordProgressCallback(TrainerCallback):
     def _find_default_channel(
         self, name: Optional[str] = None, default_name: str = "default"
     ) -> int:
+        """Try to find a writable text channel.
+
+        Follow the following algorithm:
+
+            1. if ``name`` is being provided, search for this channel first
+            2. if not found, search for ``self._discord_channel``, then
+               channel that can be configured on instance creation or by
+               loading environment variables. Check first for a channel with
+               the given name as string, then fall back to an integer
+               channel id.
+            3. if still not found, search for a channel with a given default
+               name, like "default" or "Allgemein". As this seems to depend
+               on the language, it might not find one.
+
+        If after all this still no channel has been found, either because no
+        channel with the given names/id exists, or because the Discord token
+        gives no acces to guilds/channels which we have access to, we throw
+        a ``RuntimeError``. We now can't use this callback handler.
+        """
         LOGGER.debug("Search for text channel to write to in Discord ...")
 
         guilds = self.client.guilds
@@ -140,6 +161,11 @@ class DiscordProgressCallback(TrainerCallback):
     # --------------------------------
 
     def _init_discord(self):
+        """Initialize Discord bot for accessing Discord/writing messages.
+
+        It loads the credentials, starts the asyncio Discord bot in a
+        separate thread and after connecting searches for our target channel.
+        """
         if self._initialized:
             LOGGER.debug("Already initialized, do nothing.")
             return
@@ -175,38 +201,21 @@ class DiscordProgressCallback(TrainerCallback):
 
         # NOTE: that we have to set the loop in both the main and background thread!
         # else it will raise errors in Lock/Event classes ...
-        # while not self.client.is_ready():
-        #    pass
         future = asyncio.run_coroutine_threadsafe(
             self.client.wait_until_ready(), self.loop
         )
         _ = future.result()
 
-        # th_future = concurrent.futures.Future()
-        # def _async_wrap(func, fut):
-        #    try:
-        #        ret = func()
-        #        fut.set_result(ret)
-        #    except Exception as ex:
-        #        print("ex", ex)
-        #        fut.set_exception(ex)
-        # self.loop.call_soon_threadsafe(
-        #    _async_wrap,
-        #    partial(
-        #        asyncio.run_coroutine_threadsafe,
-        #        self.client.wait_until_ready(),
-        #        loop=self.loop,
-        #    ),
-        #    th_future,
-        # )
-        # th_future.result().result()
-
-        channel_id = search_text_channel()
-        print(channel_id)
+        search_text_channel()
 
         LOGGER.debug("Discord handler initialized.")
 
     def _quit_discord(self):
+        """Shutdown the Discord bot.
+
+        Tries to close the Discord bot safely, closes the asyncio loop,
+        waits for the background thread to stop (deamonized, so on program
+        exit it will quit anyway)."""
         if not self.client:
             LOGGER.debug("Discord already shutdown, do nothing.")
             return
@@ -224,6 +233,8 @@ class DiscordProgressCallback(TrainerCallback):
     # --------------------------------
 
     def _send_message(self, text: str) -> int:
+        """Sends a message to our Discord channel. Returns the message id."""
+
         async def send():
             await self.client.wait_until_ready()
 
@@ -233,22 +244,11 @@ class DiscordProgressCallback(TrainerCallback):
 
         future = asyncio.run_coroutine_threadsafe(send(), self.loop)
         message = future.result()
-        # self.all_message_ids.add(message.id)
+        self.all_message_ids.add(message.id)
         return message.id
 
-        # th_future = concurrent.futures.Future()
-        # def _async_send(func, fut):
-        #    try:
-        #        ret = func()
-        #        ret = ret.result()
-        #        fut.set_result(ret)
-        #    except Exception as ex:
-        #        fut.set_exception(ex)
-        # func = partial(asyncio.run_coroutine_threadsafe, send(), loop=self.loop)
-        # self.loop.call_soon_threadsafe(_async_send, func, th_future)
-        # message = th_future.result()
-
     def _delete_later(self, msg_id: int, delay: Union[int, float] = 5) -> bool:
+        """Runs a delayed message deletion function."""
         try:
             channel = self.client.get_channel(self._discord_channel)
             coro = channel.fetch_message(msg_id)
@@ -265,6 +265,11 @@ class DiscordProgressCallback(TrainerCallback):
     def _send_log_results(
         self, logs: Dict[str, Any], state: TrainerState, args: TrainingArguments
     ) -> int:
+        """Formats current log metrics as Embed message.
+
+        Given a huggingface transformers Trainer callback parameters,
+        we create an :class:`discord.Embed` with the metrics as key-values.
+        Send the message and returns the message id."""
         results_embed = discord.Embed(title="Results")
 
         for k, v in logs.items():
@@ -327,9 +332,11 @@ class DiscordProgressCallback(TrainerCallback):
     # --------------------------------
 
     def start(self):
+        """Start the Discord bot."""
         self._init_discord()
 
     def end(self):
+        """Stop the Discord bot. Cleans up resources."""
         self._quit_discord()
 
     # --------------------------------

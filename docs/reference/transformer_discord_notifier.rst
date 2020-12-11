@@ -7,4 +7,6 @@ transformer_discord_notifier
 
 .. automodule:: transformer_discord_notifier
     :members:
+    :undoc-members:
     :private-members:
+    :show-inheritance:
