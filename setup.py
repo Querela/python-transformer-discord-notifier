@@ -24,7 +24,7 @@ def read(*names, **kwargs):
 
 setup(
     name="transformer-discord-notifier",
-    version="0.0.0",
+    version="0.1.0",
     license="MIT",
     description="A Discord Notifier to send progress updates, params and results to a Discord channel.",
     long_description="%s\n%s"
@@ -80,6 +80,6 @@ setup(
             "pygments",
             "isort",
         ],
-        "docs": ["-r docs/requirements.txt"],
+        # "docs": ["-rdocs/requirements.txt"],
     },
 )
