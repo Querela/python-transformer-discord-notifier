@@ -39,6 +39,7 @@ To set up `python-transformer-discord-notifier` for local development:
 
 1. Fork `python-transformer-discord-notifier <https://github.com/Querela/python-transformer-discord-notifier>`_
    (look for the "Fork" button).
+
 2. Clone your fork locally::
 
     git clone git@github.com:YOURGITHUBNAME/python-transformer-discord-notifier.git
@@ -49,9 +50,16 @@ To set up `python-transformer-discord-notifier` for local development:
 
    Now you can make your changes locally.
 
-4. When you're done making changes run all the checks and docs builder with `tox <https://tox.readthedocs.io/en/latest/install.html>`_ one command::
+4. When you're done making changes run all the checks, tests and rebuild docs::
 
-    tox
+    python setup.py check --strict --metadata --restructuredtext
+    check-manifest
+    flake8
+    isort --verbose --check-only --diff --filter-files src
+
+    sphinx-build -b doctest docs dist/docs
+    sphinx-build -b html docs dist/docs
+    sphinx-build -b linkcheck docs dist/docs
 
 5. Commit your changes and push your branch to GitHub::
 
@@ -68,20 +76,7 @@ If you need some code review or feedback while you're developing the code just m
 
 For merging, you should:
 
-1. Include passing tests (run ``tox``).
+1. RUn extensive tests.
 2. Update documentation when there's new API, functionality etc.
 3. Add a note to ``CHANGELOG.rst`` about the changes.
 4. Add yourself to ``AUTHORS.rst``.
-
-
-
-Tips
-----
-
-To run a subset of tests::
-
-    tox -e envname -- pytest -k test_myfeature
-
-To run all the test environments in *parallel*::
-
-    tox -p auto

@@ -58,10 +58,6 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
-        # uncomment if you test on these interpreters:
-        # 'Programming Language :: Python :: Implementation :: IronPython',
-        # 'Programming Language :: Python :: Implementation :: Jython',
-        # 'Programming Language :: Python :: Implementation :: Stackless',
         "Topic :: Utilities",
     ],
     project_urls={
@@ -70,9 +66,20 @@ setup(
         "Issue Tracker": "https://github.com/Querela/python-transformer-discord-notifier/issues",
     },
     keywords=[
-        # eg: 'keyword1', 'keyword2', 'keyword3',
+        "transformers",
+        "discord.py",
     ],
     python_requires=">=3.6",
     install_requires=["transformers>=4.0.0,<5", "discord.py"],
-    extras_require={},
+    extras_require={
+        "dev": [
+            "docutils",
+            "check-manifest",
+            "flake8",
+            "readme-renderer",
+            "pygments",
+            "isort",
+        ],
+        "docs": ["-r docs/requirements.txt"],
+    },
 )

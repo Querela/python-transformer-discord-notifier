@@ -7,3 +7,4 @@ transformer_discord_notifier
 
 .. automodule:: transformer_discord_notifier
     :members:
+    :private-members:

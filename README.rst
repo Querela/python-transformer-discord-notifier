@@ -9,9 +9,6 @@ Overview
 
     * - docs
       - |docs|
-    * - tests
-      - |
-        |
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
         | |commits-since|
@@ -65,27 +62,8 @@ Documentation
 
 https://python-transformer-discord-notifier.readthedocs.io/
 
+::
 
-Development
-===========
-
-To run all the tests run::
-
-    tox
-
-Note, to combine the coverage data from all the tox environments run:
-
-.. list-table::
-    :widths: 10 90
-    :stub-columns: 1
-
-    - - Windows
-      - ::
-
-            set PYTEST_ADDOPTS=--cov-append
-            tox
-
-    - - Other
-      - ::
-
-            PYTEST_ADDOPTS=--cov-append tox
+    git clone https://github.com/Querela/python-transformer-discord-notifier.git
+    cd python-transformer-discord-notifier
+    sphinx-build -b html docs dist/docs

@@ -2,4 +2,4 @@
 Authors
 =======
 
-* Erik Körner - -
+* Erik Körner - koerner@informatik.uni-leipzig.de
