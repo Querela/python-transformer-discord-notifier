@@ -4,6 +4,8 @@ import logging
 import time
 from datetime import timedelta
 
+from tqdm import tqdm
+from transformers.trainer_callback import ProgressCallback
 from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_callback import TrainerControl
 from transformers.trainer_callback import TrainerState
@@ -23,10 +25,156 @@ __all__ = ["DiscordProgressCallback"]
 # ----------------------------------------------------------------------------
 
 
+class DiscordProgressCallback(ProgressCallback):
+    def __init__(
+        self, token: Optional[str] = None, channel: Optional[Union[str, int]] = None
+    ):
+        super().__init__()
+
+        self.client = DiscordClient(token, channel)
+
+        self.last_message_ids: Dict[str, int] = dict()
+
+    # --------------------------------
+
+    def start(self) -> None:
+        """Start the Discord bot."""
+        self.client.init()
+
+    def end(self) -> None:
+        """Stop the Discord bot. Cleans up resources."""
+        self.client.quit()
+
+    # --------------------------------
+
+    def on_init_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        super().on_init_end(args, state, control, **kwargs)
+        self.client.init()
+
+    def __del__(self):
+        self.client.quit()
+
+    # --------------------------------
+
+    def _new_tqdm_bar(
+        self,
+        desc: str,
+        run_name: Optional[str] = None,
+        delete_after: bool = True,
+        **kwargs,
+    ):
+        """Builds an internal ``tqdm`` wrapper for progress tracking.
+
+        Patches its ``file.write`` method to forward it to Discord.
+        Tries to update existing messages to avoid spamming the channel.
+        """
+
+        class FakeTQDMTrainWriter:
+            def __init__(
+                self,
+                client: DiscordClient,
+                run_name: Optional[str] = None,
+                delete_after: bool = True,
+            ):
+                self.msg_id: Optional[int] = None
+                self.run_name = run_name
+                self.delete_after = delete_after
+                self.client = client
+
+            def write(self, text: str):
+                text = text.strip("\r\n")
+                if not text.strip():
+                    return
+
+                msg_s = f"```{text}```"
+                if self.run_name:
+                    msg_s = f"Run: **{self.run_name}**\n{msg_s}"
+                self.msg_id = self.client.update_or_send_message(
+                    msg_id=self.msg_id, text=msg_s
+                )
+
+            def flush(self):
+                pass
+
+            def __del__(self):
+                if self.delete_after and self.msg_id is not None:
+                    self.client.delete_later(self.msg_id, delay=10)
+
+        return tqdm(
+            desc=desc,
+            ascii=False,
+            leave=False,
+            position=0,
+            file=FakeTQDMTrainWriter(
+                self.client, run_name=run_name, delete_after=delete_after
+            ),
+            **kwargs,
+        )
+
+    def on_train_begin(self, args, state, control, **kwargs):
+        if state.is_local_process_zero:
+            self.training_bar = self._new_tqdm_bar(
+                desc="train",
+                run_name=args.run_name,
+                delete_after=False,
+                total=state.max_steps,
+            )
+        self.current_step = 0
+
+    def on_prediction_step(self, args, state, control, eval_dataloader=None, **kwargs):
+        if state.is_local_process_zero:
+            if self.prediction_bar is None:
+                self.prediction_bar = self._new_tqdm_bar(
+                    desc="predict",
+                    run_name=args.run_name,
+                    delete_after=True,
+                    total=len(eval_dataloader),
+                )
+            self.prediction_bar.update(1)
+
+    # def on_step_end(self, args, state, control, **kwargs)
+    # def on_prediction_step(self, args, state, control, eval_dataloader=None, **kwargs)
+
+    # def on_train_end(self, args, state, control, **kwargs)
+    # def on_evaluate(self, args, state, control, **kwargs)
+
+    # --------------------------------
+
+    def _send_log_results(
+        self, logs: Dict[str, Any], state: TrainerState, args: TrainingArguments
+    ) -> int:
+        """Formats current log metrics as Embed message.
+
+        Given a huggingface transformers Trainer callback parameters,
+        we create an :class:`discord.Embed` with the metrics as key-values.
+        Send the message and returns the message id."""
+        results_embed = self.client.build_embed(
+            kvs=logs,
+            title="Results",
+            footer=f"Global step: {state.global_step} | Run: {args.run_name}",
+        )
+
+        return self.client.send_message(text="", embed=results_embed)
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if state.is_local_process_zero and self.training_bar is not None:
+            _ = logs.pop("total_flos", None)
+            # self.training_bar.write(str(logs))
+            msg_id = self._send_log_results(logs, state, args)
+
+    # --------------------------------
+
+
 # ----------------------------------------------------------------------------
 
 
-class DiscordProgressCallback(TrainerCallback):
+class DiscordFancyCallback(TrainerCallback):
     def __init__(
         self, token: Optional[str] = None, channel: Optional[Union[str, int]] = None
     ):
