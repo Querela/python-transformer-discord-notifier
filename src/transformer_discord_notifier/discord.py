@@ -363,11 +363,33 @@ class DiscordClient:
         self.all_message_ids.add(message.id)
         return message.id
 
+    def get_message_by_id(self, msg_id: int) -> Optional[discord.Message]:
+        """Try to retrieve a Discord message by its id.
+
+        Parameters
+        ----------
+        msg_id : int
+            message id of message sent in Discord channel
+
+        Returns
+        -------
+        Optional[discord.Message]
+            ``None`` if message could not be found by `msg_id`,
+            else return the message object
+        """
+        try:
+            channel: discord.TextChannel = self.client.get_channel(
+                self._discord_channel
+            )
+            coro = channel.fetch_message(msg_id)
+            future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+            message: discord.Message = future.result()
+            return message
+        except discord.errors.NotFound:
+            return None
+
     def update_or_send_message(
-        self,
-        text: str = "",
-        embed: Optional[discord.Embed] = None,
-        msg_id: Optional[int] = None,
+        self, msg_id: Optional[int] = None, **fields
     ) -> Optional[int]:
         """Wrapper for :func:`send_message` to updated an existing message,
         identified by `msg_id` or simply send a new message if no prior
@@ -375,13 +397,13 @@ class DiscordClient:
 
         Parameters
         ----------
-        text : str, optional
-            text message, by default ""
-        embed : Optional[discord.Embed], optional
-            Discord embed, by default None
         msg_id : Optional[int], optional
             message id of prior message sent in channel, if not provided
             then send a new message.
+        text : str, optional
+            text message, if set to ``None`` it will remove prior message content
+        embed : Optional[discord.Embed], optional
+            Discord embed, set to ``None`` to delete existing embed
 
         Returns
         -------
@@ -389,24 +411,22 @@ class DiscordClient:
             message id of updated or newly sent message,
             ``None`` if nothing was sent
         """
+        message = None
         if msg_id:
-            try:
-                channel: discord.TextChannel = self.client.get_channel(
-                    self._discord_channel
-                )
-                coro = channel.fetch_message(msg_id)
-                future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-                msg: discord.Message = future.result()
-            except discord.errors.NotFound:
-                msg_id = None
-                msg = None
+            message = self.get_message_by_id(msg_id)
 
-            if msg:
-                coro = msg.edit(content=text, embed=embed)
-                asyncio.run_coroutine_threadsafe(coro, self.loop)
+        if message:
+            # filter allowed keywords
+            fields = {k: v for k, v in fields.items() if k in ("text", "embed")}
+            if "text" in fields:
+                fields["content"] = fields.pop("text")
 
-        if not msg_id:
-            msg_id = self.send_message(text=text, embed=embed)
+            coro = message.edit(**fields)
+            _ = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        else:
+            msg_id = self.send_message(
+                text=fields.get("text", None), embed=fields.get("embed", None)
+            )
 
         return msg_id
 
@@ -426,18 +446,13 @@ class DiscordClient:
             ``True`` if message deletion is queued,
             ``False`` if message could not be found in channel
         """
-        try:
-            channel: discord.TextChannel = self.client.get_channel(
-                self._discord_channel
-            )
-            coro = channel.fetch_message(msg_id)
-            future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-            message: discord.Message = future.result()
-        except discord.errors.NotFound:
+        # NOTE: delete_after is an option of send/edit of channel/message
+        message = self.get_message_by_id(msg_id)
+        if not message:
             return False
 
         coro = message.delete(delay=delay)
-        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        _ = asyncio.run_coroutine_threadsafe(coro, self.loop)
 
         return True
 
@@ -447,7 +462,7 @@ class DiscordClient:
         title: Optional[str] = None,
         footer: Optional[str] = None,
     ) -> discord.Embed:
-        """Builds an Embed message from key-values.
+        """Builds an rich Embed from key-values.
 
         Parameters
         ----------
