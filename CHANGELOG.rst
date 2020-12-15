@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.2.2 (WIP)
+-----------
+
+* Add (private) scripts (make venv, run checks).
+* Update usage docs.
+
 0.2.1 (2020-12-15)
 ------------------
 
