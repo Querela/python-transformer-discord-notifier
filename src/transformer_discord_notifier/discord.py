@@ -352,8 +352,10 @@ class DiscordClient:
         async def _send():
             await self.client.wait_until_ready()
 
-            channel = self.client.get_channel(self._discord_channel)
-            msg = await channel.send(text, embed=embed)
+            channel: discord.TextChannel = self.client.get_channel(
+                self._discord_channel
+            )
+            msg: discord.Message = await channel.send(text, embed=embed)
             return msg
 
         future = asyncio.run_coroutine_threadsafe(_send(), self.loop)
@@ -389,10 +391,12 @@ class DiscordClient:
         """
         if msg_id:
             try:
-                channel = self.client.get_channel(self._discord_channel)
+                channel: discord.TextChannel = self.client.get_channel(
+                    self._discord_channel
+                )
                 coro = channel.fetch_message(msg_id)
                 future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-                msg = future.result()
+                msg: discord.Message = future.result()
             except discord.errors.NotFound:
                 msg_id = None
                 msg = None
@@ -423,10 +427,12 @@ class DiscordClient:
             ``False`` if message could not be found in channel
         """
         try:
-            channel = self.client.get_channel(self._discord_channel)
+            channel: discord.TextChannel = self.client.get_channel(
+                self._discord_channel
+            )
             coro = channel.fetch_message(msg_id)
             future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-            message = future.result()
+            message: discord.Message = future.result()
         except discord.errors.NotFound:
             return False
 
