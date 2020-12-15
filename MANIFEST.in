@@ -12,4 +12,6 @@ include README.rst
 
 include .readthedocs.yml .pre-commit-config.yaml
 
+prune scripts
+
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
