@@ -1,12 +1,4 @@
 transformer_discord_notifier
 ============================
 
-.. testsetup::
-
-    from transformer_discord_notifier import *
-
-.. automodule:: transformer_discord_notifier
-    :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
+Imports :class:`transformer_discord_notifier.discord.DiscordClient` and :class:`transformer_discord_notifier.transformers.DiscordProgressCallback`.
