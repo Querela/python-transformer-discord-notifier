@@ -2,27 +2,27 @@
 Changelog
 =========
 
-0.3.0 (2020-12-15)
+0.3.0 (2020-12-16)
 ------------------
 
 * Add (private) scripts (make venv, run checks).
 * Update usage docs.
 * Extend / rewrite discord client methods.
-* Reuse existing tqdm :class:`transformers.trainer_callback.ProgressCallback` for progress tracking.
+* Reuse existing ``tqdm`` :class:`transformers.trainer_callback.ProgressCallback` for progress tracking.
 * Fancy aggregation of prediction runs, split train progress into epochs.
 
 0.2.1 (2020-12-15)
 ------------------
 
-* Correct `setup.py` validation.
+* Correct ``setup.py`` validation.
 * Add (private) distribution/docs build scripts.
 
 0.2.0 (2020-12-15)
 ------------------
 
-* Refactor blocking discord code into `discord` submodule.
-* Fix behaviour for `__del__` with refactoring, so it work as intended.
-* Improve documentation for `discord` module.
+* Refactor blocking discord code into ``discord`` submodule.
+* Fix behaviour for ``__del__`` with refactoring, so it work as intended.
+* Improve documentation for ``discord`` module.
 
 0.1.0 (2020-12-11)
 ------------------
