@@ -20,7 +20,7 @@ project = "Transformer Discord Notifier"
 year = "2020"
 author = "Erik Körner"
 copyright = "{0}, {1}".format(year, author)
-version = release = "0.2.1"
+version = release = "0.3.0"
 
 pygments_style = "trac"
 templates_path = ["."]
