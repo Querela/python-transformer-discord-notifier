@@ -8,7 +8,8 @@ Changelog
 * Add (private) scripts (make venv, run checks).
 * Update usage docs.
 * Extend / rewrite discord client methods.
-* Reuse existing tqdm :class:`transformers.trainer_callback.ProgressCallback` for progress tracking
+* Reuse existing tqdm :class:`transformers.trainer_callback.ProgressCallback` for progress tracking.
+* Fancy aggregation of prediction runs, split train progress into epochs.
 
 0.2.1 (2020-12-15)
 ------------------
