@@ -167,11 +167,17 @@ class DiscordClient:
 
     # --------------------------------
 
-    def init(self) -> None:
+    def init(self):
         """Initialize Discord bot for accessing Discord/writing messages.
 
         It loads the credentials, starts the asyncio Discord bot in a
         separate thread and after connecting searches for our target channel.
+
+        Raises
+        ------
+        RuntimeError
+            raised on error while initializing the Discord bot, like invalid
+            token or channel not found, etc.
         """
         if self._initialized:
             LOGGER.debug("Already initialized, do nothing.")
@@ -190,26 +196,35 @@ class DiscordClient:
             async def client_runner():
                 try:
                     await self.client.start(self._discord_token)
-                except asyncio.CancelledError:
-                    pass
+                except discord.errors.LoginFailure as ex:
+                    LOGGER.warning("Login error! %s", ex)
+                    await self.client.close()
+                    self.loop.stop()
+                except asyncio.CancelledError as ex:
+                    LOGGER.exception("cancelled? %s", ex)
                 except Exception as ex:
+                    LOGGER.exception("%s", ex)
                     LOGGER.debug("client_runner: Error? %s", ex)
+                    if self.loop and self.loop.is_running():
+                        self.loop.stop()
                 finally:
                     if not self.client:
                         # just to be sure, should never happen
                         return
 
                     LOGGER.debug(
-                        "client_runner: close() - is_closed: %s",
+                        "client_runner: close() - is_ready: %s, is_closed: %s",
+                        self.client.is_ready(),
                         self.client.is_closed(),
                     )
-                    if not self.client.is_closed():
+                    if self.client.is_ready() and not self.client.is_closed():
                         await self.client.close()
 
                 LOGGER.debug("client_runner: done.")
 
             def stop_loop_on_completion(_future):
                 if self.loop and not self.loop.is_closed:
+                    LOGGER.debug("Closing loop")
                     self.loop.stop()
 
             future = asyncio.ensure_future(client_runner(), loop=self.loop)
@@ -218,9 +233,10 @@ class DiscordClient:
             try:
                 self.loop.run_forever()
             finally:
-                LOGGER.debug("Closing Discord AsyncIO Loop ...")
+                LOGGER.debug("Try closing Discord AsyncIO Loop ...")
                 future.remove_done_callback(stop_loop_on_completion)
-                self.loop.close()
+                if self.loop and not self.loop.is_closed():
+                    self.loop.close()
                 LOGGER.debug("Discord AsyncIO Loop closed.")
 
         self.client_thread = threading.Thread(
@@ -228,42 +244,51 @@ class DiscordClient:
         )
         self.client_thread.start()
 
-        def search_text_channel():
-            # LOGGER.debug("Wait for client to finish? ...")
-            # await self.client.wait_until_ready()
-            LOGGER.debug("Search for text channel ...")
-
-            try:
-                self._discord_channel = self._find_default_channel()
-            except RuntimeError:
-                LOGGER.warning("Found no default channel!")
-                return None
-            LOGGER.info(f"Found channel: {self._discord_channel}")
-            return self._discord_channel
+        if self.loop.is_running():
+            raise RuntimeError("Loop not running!")
 
         # NOTE: that we have to set the loop in both the main and background thread!
         # else it will raise errors in Lock/Event classes ...
         future = asyncio.run_coroutine_threadsafe(
             self.client.wait_until_ready(), self.loop
         )
-        _ = future.result()
+        _ = future.result(timeout=30)
 
-        search_text_channel()
+        LOGGER.debug("Search for text channel ...")
+        try:
+            self._discord_channel = self._find_default_channel()
+            LOGGER.info(f"Found channel: {self._discord_channel}")
+        except RuntimeError:
+            LOGGER.warning("Found no default channel!")
+            raise
 
+        self._initialized = True
         LOGGER.debug("Discord handler initialized.")
 
-    def quit(self) -> None:
-        """Shutdown the Discord bot.
-
-        Tries to close the Discord bot safely, closes the asyncio loop,
-        waits for the background thread to stop (deamonized, so on program
-        exit it will quit anyway)."""
+    def _quit_client(self):
+        """Internal. Try to properly quit the Discord client if neccessary,
+        and close the asyncio loop if required.
+        """
         if not self.client:
-            LOGGER.debug("Discord already shutdown, do nothing.")
+            LOGGER.debug("No Discord client, do nothing.")
+            return
+
+        if not self.loop or self.loop.is_closed():
+            LOGGER.debug("Asyncio loop already closed, do nothing.")
             return
 
         LOGGER.debug("Shutdown Discord handler ...")
 
+        # stop client
+        if not self.client.is_closed():
+            coro = self.client.close()
+            future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+            try:
+                future.result(timeout=10)
+            except Exception as ex:
+                LOGGER.exception("Error while waiting for client to close ... %s", ex)
+
+        # cancel remaining tasks
         def _cancel_tasks(loop):
             """Cancel reamining tasks. Try to wait until finished."""
             # Code adapted from discord.client to work with threads
@@ -305,25 +330,37 @@ class DiscordClient:
                     LOGGER.debug("task cancel error? %s %s", task, ex)
                     continue
 
-        # stop client
-        coro = self.client.close()
-        future = asyncio.run_coroutine_threadsafe(coro, self.loop)
-        future.result(timeout=10)
-
-        # cancel remaining tasks
         self.loop.call_soon_threadsafe(_cancel_tasks, self.loop)
 
         # stop loop
         self.loop.stop()
 
+        # clear state?
+        self.client = None
+        self.loop = None
+        self._initialized = False
+
+    def quit(self):
+        """Shutdown the Discord bot.
+
+        Tries to close the Discord bot safely, closes the asyncio loop,
+        waits for the background thread to stop (deamonized, so on program
+        exit it will quit anyway)."""
+        self._quit_client()
+
         # asyncio background thread should have finished, but wait
         # if still not joined after timeout, just quit
         # (thread will stop on program end)
-        self.client_thread.join(timeout=3)
+        if self.client_thread:
+            self.client_thread.join(timeout=3)
 
+        # properly reset all attributes
         self.client = None
         self.client_thread = None
         self.loop = None
+        self._initialized = False
+
+        LOGGER.debug("Discord handler shut down.")
 
     # --------------------------------
 
@@ -345,6 +382,11 @@ class DiscordClient:
             message id if `text` and `embed` were both not ``None``,
             ``None`` if nothing was sent
         """
+        # if not initialized, return
+        # TODO: or raise error?
+        if not self._initialized:
+            return None
+
         # if nothing to send, return
         if not text and not embed:
             return None
@@ -377,6 +419,10 @@ class DiscordClient:
             ``None`` if message could not be found by `msg_id`,
             else return the message object
         """
+        # if not initialized, return
+        if not self._initialized:
+            return None
+
         try:
             channel: discord.TextChannel = self.client.get_channel(
                 self._discord_channel
@@ -411,6 +457,10 @@ class DiscordClient:
             message id of updated or newly sent message,
             ``None`` if nothing was sent
         """
+        # if not initialized, return
+        if not self._initialized:
+            return None
+
         message = None
         if msg_id:
             message = self.get_message_by_id(msg_id)
@@ -446,6 +496,10 @@ class DiscordClient:
             ``True`` if message deletion is queued,
             ``False`` if message could not be found in channel
         """
+        # if not initialized, return
+        if not self._initialized:
+            return False
+
         # NOTE: delete_after is an option of send/edit of channel/message
         message = self.get_message_by_id(msg_id)
         if not message:

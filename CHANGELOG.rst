@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.3.1 (2020-12-17)
+------------------
+
+* Let Discord bot gracefully handle initialization failures.
+* Let transformer callback handler handle invalid configs gracefully, to simply exit.
+* Better handling of edge cases of Discord client login.
+
 0.3.0 (2020-12-16)
 ------------------
 

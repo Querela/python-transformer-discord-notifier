@@ -1,7 +1,6 @@
-__version__ = "0.1.0"
-
 import logging
 import time
+from concurrent.futures import TimeoutError
 from datetime import timedelta
 
 from tqdm import tqdm
@@ -68,11 +67,33 @@ class MessageWrapperTQDMWriter:
 
 
 class DiscordProgressCallback(ProgressCallback):
+    """An extended :class:`transformers.trainer_callback.ProgressCallback`
+    that logs training and evaluation progress and statistics to a Discord
+    channel.
+
+    Attributes
+    ----------
+    client : DiscordClient
+        a blocking Discord client
+    disabled : bool
+        ``True`` if Discord client couldn't not be initialized
+        successfully, all callback methods are disabled silently
+    """
+
     def __init__(
         self, token: Optional[str] = None, channel: Optional[Union[str, int]] = None
     ):
+        """
+        Parameters
+        ----------
+        token : Optional[str], optional
+            Discord bot token, by default None
+        channel : Optional[Union[str, int]], optional
+            Discord channel name or numeric id, by default None
+        """
         super().__init__()
 
+        self.disabled = False
         self.client = DiscordClient(token, channel)
 
         self.last_embed_id: Optional[int] = None
@@ -85,11 +106,25 @@ class DiscordProgressCallback(ProgressCallback):
 
     def start(self) -> None:
         """Start the Discord bot."""
-        self.client.init()
+        is_ok, err_msg = True, None
+        try:
+            self.client.init()
+        except (RuntimeError, TimeoutError, TypeError) as ex:
+            is_ok = False
+            err_msg = str(ex)
+
+        if not is_ok or not self.client or not self.client._initialized:
+            LOGGER.warning(
+                "Failure to initialize Discord client."
+                " Silently disable callback handler."
+                + (f" Error: {err_msg}" if err_msg else "")
+            )
+            self.disabled = True
 
     def end(self) -> None:
         """Stop the Discord bot. Cleans up resources."""
-        self.client.quit()
+        if self.client:
+            self.client.quit()
 
     # --------------------------------
 
@@ -100,11 +135,10 @@ class DiscordProgressCallback(ProgressCallback):
         control: TrainerControl,
         **kwargs,
     ):
-        super().on_init_end(args, state, control, **kwargs)
-        self.client.init()
+        self.start()
 
     def __del__(self):
-        self.client.quit()
+        self.end()
 
     # --------------------------------
 
@@ -144,6 +178,9 @@ class DiscordProgressCallback(ProgressCallback):
         control: TrainerControl,
         **kwargs,
     ):
+        if self.disabled:
+            return
+
         if state.is_local_process_zero:
             msg_fmt = "```\n{text}\n```"
             if args.run_name:
@@ -165,6 +202,9 @@ class DiscordProgressCallback(ProgressCallback):
         eval_dataloader=None,
         **kwargs,
     ):
+        if self.disabled:
+            return
+
         if state.is_local_process_zero:
             if self.prediction_bar is None:
                 if self.writer_predict is None:
@@ -182,6 +222,18 @@ class DiscordProgressCallback(ProgressCallback):
                 )
             self.prediction_bar.update(1)
 
+    def on_step_end(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        **kwargs,
+    ):
+        if self.disabled:
+            return
+
+        super().on_step_end(args, state, control, **kwargs)
+
     # --------------------------------
 
     def on_epoch_begin(
@@ -191,6 +243,9 @@ class DiscordProgressCallback(ProgressCallback):
         control: TrainerControl,
         **kwargs,
     ):
+        if self.disabled:
+            return
+
         super().on_epoch_begin(args, state, control, **kwargs)
         if state.is_local_process_zero:
             self.epoch_start_time = time.time()
@@ -202,6 +257,9 @@ class DiscordProgressCallback(ProgressCallback):
         control: TrainerControl,
         **kwargs,
     ):
+        if self.disabled:
+            return
+
         super().on_epoch_end(args, state, control, **kwargs)
         if state.is_local_process_zero:
             time_diff = time.time() - self.epoch_start_time
@@ -224,6 +282,9 @@ class DiscordProgressCallback(ProgressCallback):
         control: TrainerControl,
         **kwargs,
     ):
+        if self.disabled:
+            return
+
         super().on_train_end(args, state, control, **kwargs)
         if state.is_local_process_zero:
             if self.writer_train is not None:
@@ -237,6 +298,9 @@ class DiscordProgressCallback(ProgressCallback):
         control: TrainerControl,
         **kwargs,
     ):
+        if self.disabled:
+            return
+
         super().on_evaluate(args, state, control, **kwargs)
         if state.is_local_process_zero:
             self.writer_predict.msg_fmt = self.writer_predict.msg_fmt.format(
@@ -278,6 +342,9 @@ class DiscordProgressCallback(ProgressCallback):
         logs: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
+        if self.disabled:
+            return
+
         if state.is_local_process_zero:
             is_train = False
             if self.training_bar is not None:
