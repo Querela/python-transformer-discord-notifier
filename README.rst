@@ -9,12 +9,23 @@ Overview
 
     * - docs
       - |docs|
+    * - tests
+      - | |travis|
+        | |coveralls|
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
         | |commits-since|
 .. |docs| image:: https://readthedocs.org/projects/python-transformer-discord-notifier/badge/?style=flat
     :target: https://readthedocs.org/projects/python-transformer-discord-notifier
     :alt: Documentation Status
+
+.. |travis| image:: https://api.travis-ci.org/Querela/python-transformer-discord-notifier.svg?branch=master
+    :alt: Travis-CI Build Status
+    :target: https://travis-ci.org/Querela/python-transformer-discord-notifier
+
+.. |coveralls| image:: https://coveralls.io/repos/Querela/python-transformer-discord-notifier/badge.svg?branch=master&service=github
+    :alt: Coverage Status
+    :target: https://coveralls.io/r/Querela/python-transformer-discord-notifier
 
 .. |version| image:: https://img.shields.io/pypi/v/transformer-discord-notifier.svg
     :alt: PyPI Package latest release
@@ -67,3 +78,28 @@ https://python-transformer-discord-notifier.readthedocs.io/
     git clone https://github.com/Querela/python-transformer-discord-notifier.git
     cd python-transformer-discord-notifier
     sphinx-build -b html docs dist/docs
+
+
+Development
+===========
+
+To run all the tests run::
+
+    tox
+
+Note, to combine the coverage data from all the tox environments run:
+
+.. list-table::
+    :widths: 10 90
+    :stub-columns: 1
+
+    - - Windows
+      - ::
+
+            set PYTEST_ADDOPTS=--cov-append
+            tox
+
+    - - Other
+      - ::
+
+            PYTEST_ADDOPTS=--cov-append tox

@@ -1,0 +1,57 @@
+language: python
+dist: xenial
+virt: lxd
+cache: false
+env:
+  global:
+    - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+    - SEGFAULT_SIGNALS=all
+    - LANG=en_US.UTF-8
+matrix:
+  include:
+    - python: '3.6'
+      env:
+        - TOXENV=check
+    - python: '3.6'
+      env:
+        - TOXENV=docs
+    - env:
+        - TOXENV=py36,coveralls
+      python: '3.6'
+    - env:
+        - TOXENV=py37,coveralls
+      python: '3.7'
+    - env:
+        - TOXENV=py38,coveralls
+      python: '3.8'
+    - env:
+        - TOXENV=py39,coveralls
+      python: '3.9'
+    - env:
+        - TOXENV=pypy3,coveralls
+        - TOXPYTHON=pypy3
+      python: 'pypy3'
+before_install:
+  - python --version
+  - uname -a
+  - lsb_release -a || true
+install:
+  - python -m pip install --progress-bar=off --upgrade 'pip>=19.1.1' 'setuptools>=18.0.1' wheel
+  - python -m pip install --progress-bar=off --upgrade tox 'virtualenv>=16.6.0' 'six>=1.14.0'
+  - python -m pip install --progress-bar=off --upgrade coveralls
+  - virtualenv --version
+  - easy_install --version
+  - pip --version
+  - python -c 'import setuptools; print("setuptools", setuptools.__version__)'
+  - tox --version
+script:
+  - tox -v
+after_success:
+  - coveralls
+after_failure:
+  - cat .tox/log/*
+  - cat .tox/*/log/*
+notifications:
+  email:
+    on_success: never
+    on_failure: always

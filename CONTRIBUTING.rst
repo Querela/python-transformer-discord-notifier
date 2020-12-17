@@ -63,7 +63,7 @@ To set up `python-transformer-discord-notifier` for local development:
 
     pytest
 
-   Or you can use ``tox`` to automatically run those commands::
+   Or you can use `tox <https://tox.readthedocs.io/en/latest/install.html>`_ to automatically run those commands::
 
     tox
 
