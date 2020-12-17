@@ -1,7 +1,9 @@
 graft docs
 graft src
+graft tests
 
 include .bumpversion.cfg
+include .coveragerc
 include .editorconfig
 
 include AUTHORS.rst
@@ -10,7 +12,7 @@ include CONTRIBUTING.rst
 include LICENSE
 include README.rst
 
-include .readthedocs.yml .pre-commit-config.yaml
+include tox.ini .readthedocs.yml .pre-commit-config.yaml
 
 prune scripts
 

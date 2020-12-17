@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.4.0 (2020-12-17, WIP)
+-----------------------
+
+* Reintroduce tests with ``pytest`` and ``tox``.
+* Add simple tests for :class:`~transformer_discord_notifier.discord.DiscordClient`.
+
 0.3.1 (2020-12-17)
 ------------------
 
@@ -27,9 +33,9 @@ Changelog
 0.2.0 (2020-12-15)
 ------------------
 
-* Refactor blocking discord code into ``discord`` submodule.
+* Refactor blocking discord code into :mod:`~transformer_discord_notifier.discord` submodule.
 * Fix behaviour for ``__del__`` with refactoring, so it work as intended.
-* Improve documentation for ``discord`` module.
+* Improve documentation for :mod:`~transformer_discord_notifier.discord` module.
 
 0.1.0 (2020-12-11)
 ------------------

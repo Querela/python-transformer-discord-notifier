@@ -61,6 +61,27 @@ To set up `python-transformer-discord-notifier` for local development:
     sphinx-build -b html docs dist/docs
     sphinx-build -b linkcheck docs dist/docs
 
+    pytest
+
+   Or you can use ``tox`` to automatically run those commands::
+
+    tox
+
+   or just a single test::
+
+    tox -e check,docs
+    tox -e py38
+
+   Note, that the tests with ``pytest`` require a valid Discord token and channel.
+   They must be provided as ``--discord-token token``, ``--discord-channel chan`` or
+   ``DISCORD_TOKEN=token``, ``DISCORD_CHANNEL=chan``.
+   
+   You can set the environment variables in the ``.env`` file to make them visible
+   to both ``pytest`` and ``tox`` environments.
+
+   If you use VSCode, configure it to use an environment variable file,
+   in ``.vscode/settings.json`` the setting ``"python.envFile": "${workspaceFolder}/.env"``.
+
 5. Commit your changes and push your branch to GitHub::
 
     git add .

@@ -83,6 +83,7 @@ setup(
             "isort",
             # "twine",
         ],
-        # "docs": ["-rdocs/requirements.txt"],
+        # "test": ["--rtests/requirements.txt"],
+        # "doc": ["-rdocs/requirements.txt"],
     },
 )
