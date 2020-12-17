@@ -2,8 +2,13 @@
 Changelog
 =========
 
-0.4.0 (2020-12-17)
+0.4.2 (2020-12-18, WIP)
 -----------------------
+
+* Blocking message deletion?
+
+0.4.1 (2020-12-17)
+------------------
 
 * Reintroduce tests with ``pytest`` and ``tox``.
 * Add simple tests for :class:`~transformer_discord_notifier.discord.DiscordClient`.
