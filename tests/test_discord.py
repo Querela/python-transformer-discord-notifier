@@ -1,6 +1,7 @@
 import os
 import time
 from concurrent.futures import TimeoutError
+from typing import List, Set
 
 import discord
 
@@ -285,6 +286,127 @@ def test_embed_if_initialized():
     ret = client.delete_later(msg_id, delay=0)
     assert ret is True
 
+    time.sleep(0.1)
+    client.quit()
+
+
+# ----------------------------------------------------------------------------
+
+
+def test_calls_if_not_initialized():
+    client = DiscordClient()
+    assert client._initialized is False
+
+    ret = client.send_message("test")
+    assert ret is None
+
+    ret = client.get_message_by_id(1)
+    assert ret is None
+
+    ret = client.update_or_send_message(1)
+    assert ret is None
+
+    ret = client.delete_later(1, 2)
+    assert ret is False
+
+    ret = client.build_embed(kvs=dict(), title="test")
+    assert ret is not None
+
+    client._quit_client()
+    client.quit()
+
+
+def test_channel_finding():
+    token = os.getenv("DISCORD_TOKEN")
+    channel = os.getenv("DISCORD_CHANNEL")
+    client = DiscordClient(token=token, channel=channel)
+    client.init()
+    assert client._initialized is True
+
+    # check that channels exist and get all text channels
+    channels: List[discord.abc.GuildChannel] = list(client.client.get_all_channels())
+    channels = [ch for ch in channels if ch.type == discord.ChannelType.text]
+    channels = [ch for ch in channels if ch.permissions_for(ch.guild.me).send_messages]
+    channel_names: Set[str] = {ch.name for ch in channels}
+    assert len(channels) > 0, "testing requires access to text channels"
+
+    # search for unique/new channel name
+    # not sure if this can break because of max length limits ...
+    new_channel_name: str = channels[0].name + "A"
+    while new_channel_name in channel_names:
+        new_channel_name = new_channel_name + "A"
+
+    # trying to find a channel by name that we do not have access to
+    # should raise an error
+    with pytest.raises(RuntimeError) as exc_info:
+        client._discord_channel = new_channel_name
+        client._find_default_channel(
+            name=new_channel_name, default_name=new_channel_name
+        )
+    assert exc_info.type is RuntimeError
+
+    # 4th try
+    client._discord_channel = new_channel_name
+    channel_id = client._find_default_channel(
+        name=new_channel_name, default_name=channel
+    )
+    assert isinstance(channel_id, int)
+
+    # 3rd try
+    client._discord_channel = channel_id
+    channel_id2 = client._find_default_channel(
+        name=new_channel_name, default_name=new_channel_name
+    )
+    assert channel_id2 == channel_id
+
+    # 2nd try
+    client._discord_channel = channel
+    channel_id3 = client._find_default_channel(
+        name=new_channel_name, default_name=new_channel_name
+    )
+    assert channel_id3 == channel_id
+
+    # 1st try
+    client._discord_channel = new_channel_name
+    channel_id4 = client._find_default_channel(
+        name=channel, default_name=new_channel_name
+    )
+    assert channel_id4 == channel_id
+
+    # should not work with ids as name
+    client._discord_channel = new_channel_name
+    with pytest.raises(RuntimeError) as exc_info:
+        client._find_default_channel(name=channel_id, default_name=new_channel_name)
+
+    # should not work with ids as name
+    client._discord_channel = new_channel_name
+    with pytest.raises(RuntimeError) as exc_info:
+        client._find_default_channel(name=new_channel_name, default_name=channel_id)
+
+    # TODO: hashtag channel names!
+
+    client.quit()
+
+
+def test_cancel_tasks():
+    client = DiscordClient()
+    client.init()
+    assert client._initialized is True
+
+    msg_id = client.send_message("**TODO:** delete test message manually!")
+    assert msg_id is not None
+
+    found = client.delete_later(msg_id, delay=10)
+    assert found is True
+
+    client.quit()
+
+    # ---
+
+    client = DiscordClient()
+    client.init()
+    found = client.delete_later(msg_id, delay=0)
+    assert found is True
     time.sleep(0.1)
     client.quit()
 
