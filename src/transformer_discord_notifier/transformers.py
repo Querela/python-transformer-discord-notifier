@@ -93,7 +93,7 @@ class DiscordProgressCallback(ProgressCallback):
         """
         super().__init__()
 
-        self.disabled = False
+        self.disabled = True
         self.client = DiscordClient(token, channel)
 
         self.last_embed_id: Optional[int] = None
@@ -109,6 +109,7 @@ class DiscordProgressCallback(ProgressCallback):
         is_ok, err_msg = True, None
         try:
             self.client.init()
+            self.disabled = False
         except (RuntimeError, TimeoutError, TypeError) as ex:
             is_ok = False
             err_msg = str(ex)
@@ -125,6 +126,7 @@ class DiscordProgressCallback(ProgressCallback):
         """Stop the Discord bot. Cleans up resources."""
         if self.client:
             self.client.quit()
+        self.disabled = True
 
     # --------------------------------
 

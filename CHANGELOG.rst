@@ -2,11 +2,12 @@
 Changelog
 =========
 
-0.4.0 (2020-12-17, WIP)
+0.4.0 (2020-12-17)
 -----------------------
 
 * Reintroduce tests with ``pytest`` and ``tox``.
 * Add simple tests for :class:`~transformer_discord_notifier.discord.DiscordClient`.
+* Add tests for :class:`~transformer_discord_notifier.transformers.DiscordProgressCallback`.
 
 0.3.1 (2020-12-17)
 ------------------
