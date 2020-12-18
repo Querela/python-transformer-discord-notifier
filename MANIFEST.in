@@ -17,3 +17,5 @@ include tox.ini .travis.yml .readthedocs.yml .pre-commit-config.yaml
 prune scripts
 
 global-exclude *.py[cod] __pycache__/* *.so *.dylib
+
+exclude .env.enc
