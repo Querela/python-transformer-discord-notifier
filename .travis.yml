@@ -1,4 +1,6 @@
 language: python
+os:
+  - linux
 dist: xenial
 virt: lxd
 cache: false
@@ -7,7 +9,7 @@ env:
     - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
     - SEGFAULT_SIGNALS=all
     - LANG=en_US.UTF-8
-matrix:
+jobs:
   include:
     - python: '3.6'
       env:

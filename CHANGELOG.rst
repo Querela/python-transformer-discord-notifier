@@ -2,10 +2,16 @@
 Changelog
 =========
 
-0.4.2 (2020-12-18, WIP)
+0.4.3 (2020-12-18, WIP)
 -----------------------
 
 * Blocking message deletion?
+
+0.4.2 (2020-12-18)
+------------------
+
+* Add travis build jobs.
+* Add coveralls coverage statistics.
 
 0.4.1 (2020-12-17)
 ------------------
