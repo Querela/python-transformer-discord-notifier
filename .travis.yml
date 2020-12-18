@@ -1,4 +1,6 @@
 language: python
+os:
+  - linux
 dist: xenial
 virt: lxd
 cache: false
@@ -7,7 +9,7 @@ env:
     - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
     - SEGFAULT_SIGNALS=all
     - LANG=en_US.UTF-8
-matrix:
+jobs:
   include:
     - python: '3.6'
       env:
@@ -36,9 +38,7 @@ before_install:
   - uname -a
   - lsb_release -a || true
 install:
-  - python -m pip install --progress-bar=off --upgrade 'pip>=19.1.1' 'setuptools>=18.0.1' wheel
-  - python -m pip install --progress-bar=off --upgrade tox 'virtualenv>=16.6.0' 'six>=1.14.0'
-  - python -m pip install --progress-bar=off --upgrade coveralls
+  - python -m pip install --progress-bar=off --upgrade 'pip>=19.1.1' 'setuptools>=18.0.1' wheel tox 'virtualenv>=16.6.0' 'six>=1.14.0'
   - virtualenv --version
   - easy_install --version
   - pip --version
@@ -46,8 +46,6 @@ install:
   - tox --version
 script:
   - tox -v
-after_success:
-  - coveralls
 after_failure:
   - cat .tox/log/*
   - cat .tox/*/log/*
