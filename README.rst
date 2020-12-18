@@ -43,9 +43,9 @@ Overview
     :alt: Supported implementations
     :target: https://pypi.org/project/transformer-discord-notifier
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/Querela/python-transformer-discord-notifier/v0.4.1.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/Querela/python-transformer-discord-notifier/v0.4.2.svg
     :alt: Commits since latest release
-    :target: https://github.com/Querela/python-transformer-discord-notifier/compare/v0.4.1...master
+    :target: https://github.com/Querela/python-transformer-discord-notifier/compare/v0.4.2...master
 
 
 
