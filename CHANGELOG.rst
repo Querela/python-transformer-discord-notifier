@@ -2,15 +2,20 @@
 Changelog
 =========
 
-0.4.4 (2020-12-18, WIP)
------------------------
+0.4.5 (WIP)
+-----------
 
 * Blocking message deletion?
+
+0.4.4 (2020-12-22)
+------------------
+
+* Github Actions - tox tests
 
 0.4.3 (2020-12-18)
 ------------------
 
-* Github Action - pypi publishing
+* Github Actions - pypi publishing
 
 0.4.2 (2020-12-18)
 ------------------

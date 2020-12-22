@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs|
     * - tests
-      - | |travis|
+      - | |gha-tox| |travis|
         | |coveralls|
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
@@ -18,6 +18,10 @@ Overview
 .. |docs| image:: https://readthedocs.org/projects/python-transformer-discord-notifier/badge/?style=flat
     :target: https://readthedocs.org/projects/python-transformer-discord-notifier
     :alt: Documentation Status
+
+.. |gha-tox| image:: https://github.com/Querela/python-transformer-discord-notifier/workflows/Python%20tox%20tests/badge.svg
+    :alt: Python tox tests
+    :target: https://github.com/Querela/python-transformer-discord-notifier/actions?query=workflow%3A%22Python+tox+tests%22
 
 .. |travis| image:: https://api.travis-ci.org/Querela/python-transformer-discord-notifier.svg?branch=master
     :alt: Travis-CI Build Status
