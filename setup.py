@@ -24,7 +24,7 @@ def read(*names, **kwargs):
 
 setup(
     name="transformer-discord-notifier",
-    version="0.4.3",
+    version="0.4.4",
     license="MIT",
     description="A Discord Notifier to send progress updates, params and results to a Discord channel.",
     long_description="%s\n%s"
