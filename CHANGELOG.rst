@@ -5,6 +5,7 @@ Changelog
 0.4.5 (WIP)
 -----------
 
+* ignore linkcheck with version tag (if tags have not been pushed it will fails)
 * Blocking message deletion?
 
 0.4.4 (2020-12-22)

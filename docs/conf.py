@@ -55,6 +55,11 @@ napoleon_use_ivar = True
 napoleon_use_rtype = False
 napoleon_use_param = False
 
+linkcheck_ignore = [
+    # version comparison badge link (fails if tags have not been pushed yet)
+    r"^https://github\.com/Querela/python-transformer-discord-notifier/compare/v.+\.\.\.master$",
+]
+
 linkcheck_anchors_ignore = [
     "^!",
     # https://github.com/Querela/discord-notifier-bot#bot-creation-etc
