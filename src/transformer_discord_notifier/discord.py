@@ -245,6 +245,9 @@ class DiscordClient:
         # try to create a category channel
         for guild in guilds:
             try:
+                LOGGER.debug(
+                    "Create category channel '%s' in guild %s ...", name, guild.name
+                )
                 coro = guild.create_category(name)
                 future = asyncio.run_coroutine_threadsafe(coro, self.loop)
                 channel: discord.CategoryChannel = future.result()
@@ -280,6 +283,11 @@ class DiscordClient:
 
         # try to create a text channel
         try:
+            LOGGER.debug(
+                "Create text channel '%s' in category '%s' ...",
+                name,
+                category_channel.name,
+            )
             coro = category_channel.create_text_channel(name)
             future = asyncio.run_coroutine_threadsafe(coro, self.loop)
             channel: discord.TextChannel = future.result()
@@ -433,7 +441,7 @@ class DiscordClient:
         RuntimeError
             raised if experiment channel creation failed
         """
-        if overwrite:
+        if not self._experiment_channel_name or overwrite:
             self._experiment_channel_name = name
 
         if self._experiment_category_channel:
