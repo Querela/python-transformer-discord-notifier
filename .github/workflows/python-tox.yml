@@ -40,6 +40,8 @@ jobs:
       max-parallel: 1
       matrix:
         include:
+        - python-version: 3.6
+          toxenv: py37,coveralls
         - python-version: 3.7
           toxenv: py37,coveralls
         - python-version: 3.8
@@ -72,7 +74,7 @@ jobs:
         pip --version
         python -c 'import setuptools; print("setuptools", setuptools.__version__)'
         tox --version
-    - name: Decrypt coveralls credentials
+    - name: Decrypt discord credentials
       run: |
         openssl aes-256-cbc -K ${{ secrets.ENCRYPTED_3C84DCDC6BBE_KEY }} -iv ${{ secrets.ENCRYPTED_3C84DCDC6BBE_IV }} -in .env.enc -out .env -d
     - name: Run tox - ${{ matrix.toxenv }}
