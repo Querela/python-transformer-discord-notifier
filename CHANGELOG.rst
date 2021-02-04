@@ -2,11 +2,18 @@
 Changelog
 =========
 
-0.4.5 (WIP)
+0.4.6 (WIP)
 -----------
 
 * ignore linkcheck with version tag (if tags have not been pushed it will fails)
 * Blocking message deletion?
+* allow creation of experiment channels
+
+0.4.5 (2021-02-04)
+------------------
+
+* Wrap common errors, like 5xx Discord Gateway errors, to allow uninterrupted training.
+* Add python3.10 to tests / github workflows.
 
 0.4.4 (2020-12-22)
 ------------------
