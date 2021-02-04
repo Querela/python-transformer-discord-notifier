@@ -244,7 +244,7 @@ class DiscordClient:
         )
         self.client_thread.start()
 
-        if self.loop.is_running():
+        if not self.loop.is_running():
             raise RuntimeError("Loop not running!")
 
         # NOTE: that we have to set the loop in both the main and background thread!
@@ -405,13 +405,14 @@ class DiscordClient:
         self.all_message_ids.add(message.id)
         return message.id
 
-    def get_message_by_id(self, msg_id: int) -> Optional[discord.Message]:
+    def get_message_by_id(self, msg_id: Optional[int]) -> Optional[discord.Message]:
         """Try to retrieve a Discord message by its id.
 
         Parameters
         ----------
-        msg_id : int
-            message id of message sent in Discord channel
+        msg_id : Optional[int]
+            message id of message sent in Discord channel,
+            if it is ``None`` then it will be ignore, and ``None`` returned
 
         Returns
         -------
@@ -421,6 +422,9 @@ class DiscordClient:
         """
         # if not initialized, return
         if not self._initialized:
+            return None
+
+        if msg_id is None:
             return None
 
         try:
@@ -433,6 +437,14 @@ class DiscordClient:
             return message
         except discord.errors.NotFound:
             return None
+        except discord.errors.HTTPException:
+            # 504 Gateway Time-out (error code: 0): ...
+            # 503 Service Unavailable (error code: 0):
+            #   upstream connect error or disconnect/reset before headers.
+            #   reset reason: connection termination
+            return None
+        # TODO: set a timeout of 3-5 seconds, else abort?
+        # TODO: concurrent.futures._base.TimeoutError ?
 
     def update_or_send_message(
         self, msg_id: Optional[int] = None, **fields
@@ -480,13 +492,14 @@ class DiscordClient:
 
         return msg_id
 
-    def delete_later(self, msg_id: int, delay: Union[int, float] = 5) -> bool:
+    def delete_later(self, msg_id: Optional[int], delay: Union[int, float] = 5) -> bool:
         """Runs a delayed message deletion function.
 
         Parameters
         ----------
-        msg_id : int
-            message id of message sent in Discord channel
+        msg_id : Optional[int]
+            message id of message sent in Discord channel,
+            if message is None it will be silently ignored
         delay : Union[int, float], optional
             delay in seconds for then to delete the message, by default 5
 

@@ -142,9 +142,10 @@ def test_send_message_and_edit_and_delete_if_initialized():
     ret = client.delete_later(msg_id3, delay=0)
     assert ret is False
 
-    # invalid input, should only be int
-    with pytest.raises(discord.errors.HTTPException):
-        client.delete_later(None, delay=0)
+    # invalid? input, should only be int
+    # with pytest.raises(discord.errors.HTTPException):
+    # if no ID, silently ignore it
+    client.delete_later(None, delay=0)
 
     # should not send anything as nothing is being provided
     ret = client.send_message()

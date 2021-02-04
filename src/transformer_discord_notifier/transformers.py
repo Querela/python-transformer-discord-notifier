@@ -48,7 +48,12 @@ class MessageWrapperTQDMWriter:
         self.last_msg = text
 
         msg_s = self.msg_fmt.format(text=text)
-        self.msg_id = self.client.update_or_send_message(msg_id=self.msg_id, text=msg_s)
+        try:
+            self.msg_id = self.client.update_or_send_message(
+                msg_id=self.msg_id, text=msg_s
+            )
+        except Exception as ex:
+            LOGGER.debug("Swallow exception: %s", ex)
 
     def flush(self):
         pass
@@ -59,6 +64,8 @@ class MessageWrapperTQDMWriter:
                 self.client.delete_later(self.msg_id, delay=10)
             except AttributeError:
                 pass
+            except Exception as ex:
+                LOGGER.debug("Swallow exception: %s", ex)
             self.msg_id = None
 
     def __del__(self):
@@ -94,7 +101,13 @@ class DiscordProgressCallback(ProgressCallback):
         super().__init__()
 
         self.disabled = True
-        self.client = DiscordClient(token, channel)
+
+        try:
+            self.client = DiscordClient(token, channel)
+        except Exception as ex:
+            # this should not happen
+            self.client = None
+            LOGGER.warning("Swallowed error: %s", ex)
 
         self.last_embed_id: Optional[int] = None
         self.epoch_start_time: Optional[float] = None
@@ -111,6 +124,11 @@ class DiscordProgressCallback(ProgressCallback):
             self.client.init()
             self.disabled = False
         except (RuntimeError, TimeoutError, TypeError) as ex:
+            is_ok = False
+            err_msg = str(ex)
+        except Exception as ex:
+            # this should not happen,
+            # only if self.client is undefined!?
             is_ok = False
             err_msg = str(ex)
 
@@ -322,7 +340,7 @@ class DiscordProgressCallback(ProgressCallback):
         state: TrainerState,
         args: TrainingArguments,
         is_train: bool,
-    ) -> int:
+    ) -> Optional[int]:
         """Formats current log metrics as Embed message.
 
         Given a huggingface transformers Trainer callback parameters,
@@ -334,7 +352,11 @@ class DiscordProgressCallback(ProgressCallback):
             footer=f"Global step: {state.global_step} | Run: {args.run_name}",
         )
 
-        return self.client.send_message(text="", embed=results_embed)
+        try:
+            return self.client.send_message(text="", embed=results_embed)
+        except Exception as ex:
+            LOGGER.debug("Swallow exception: %s", ex)
+            return None
 
     def on_log(
         self,
@@ -353,7 +375,8 @@ class DiscordProgressCallback(ProgressCallback):
                 is_train = True
                 _ = logs.pop("total_flos", None)
             msg_id = self._send_log_results(logs, state, args, is_train)
-            self.last_embed_id = msg_id
+            if msg_id is not None:
+                self.last_embed_id = msg_id
 
     # --------------------------------
 
