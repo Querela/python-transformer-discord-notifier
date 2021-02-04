@@ -2,12 +2,17 @@
 Changelog
 =========
 
-0.4.6 (WIP)
+0.x.0 (WIP)
 -----------
 
-* ignore linkcheck with version tag (if tags have not been pushed it will fails)
+* ignore linkcheck with version tag (if tags have not been pushed it will fail)
 * Blocking message deletion?
-* allow creation of experiment channels
+
+0.5.0 (2021-02-04)
+------------------
+
+* Add dynamic experiment channel creation.
+* TODO: update docs and tests with better examples for experiment channels.
 
 0.4.5 (2021-02-04)
 ------------------

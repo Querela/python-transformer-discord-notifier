@@ -155,6 +155,11 @@ class DiscordProgressCallback(ProgressCallback):
         control: TrainerControl,
         **kwargs,
     ):
+        experiment_name = args.run_name
+        if experiment_name is None:
+            experiment_name = "unnamed"
+        self.client.set_experiment_channel_name(experiment_name)
+
         self.start()
 
     def __del__(self):

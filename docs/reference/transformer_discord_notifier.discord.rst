@@ -18,7 +18,7 @@ The :class:`~transformer_discord_notifier.discord.DiscordClient` can be used sta
 
     # create client and start background thread, to connect/login ...
     # if token/channel are None, it will try to load from environment variables
-    client = DiscordClient(token=token, channel=channel)
+    client = DiscordClient(token=token, channel=channel, create_experiment_channels=False)
     client.init()
 
     # send message

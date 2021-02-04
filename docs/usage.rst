@@ -19,7 +19,7 @@ How to use the :class:`~transformer_discord_notifier.transformers.DiscordProgres
 		# ... set up things beforehand ...
 
 		# Initialize the Discord bot
-		dpc = DiscordProgressCallback(token=None, channel=None)
+		dpc = DiscordProgressCallback(token=None, channel=None, create_experiment_channels=False)
 		dpc.start()
 
 		# Initialize our Trainer
@@ -66,6 +66,20 @@ Alternatively, since version `v0.2.0` it is possible to omit the starting and st
 		# ... when the trainer instance is garbage collected, it will clean up the Discord bot
 
 Note, however, that the both ``token`` and ``channel`` should be provided, either as class initialization parameters or as environment variables, ``DISCORD_TOKEN`` and ``DISCORD_CHANNEL``. The handler will try to load from environment variables if the instance properties are ``None``. Both should be explicitely provided to have it working correctly!
+
+Since version `v0.5.0`, we included the ability to create separate experiment channels.
+To enable those, set the following environment variables:
+
+.. code-block:: bash
+	
+	# yes|y|true|t|1 will enable the channel creation
+	export DISCORD_CREATE_EXPERIMENT_CHANNEL=yes
+	
+	# (optional) set (or create) a category channel for the experiment channels
+	export DISCORD_EXPERIMENT_CATEGORY="All my Experiments"
+	# (optional) override and set the run_name / experiment name
+	# new text channel name, note, that it will be all lowercase, "-" for whitespaces
+	export DISCORD_EXPERIMENT_NAME="Experiment-Run-A1B2"
 
 How to setup a Discord bot
 --------------------------

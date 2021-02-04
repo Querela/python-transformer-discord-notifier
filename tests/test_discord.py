@@ -14,6 +14,7 @@ from transformer_discord_notifier.discord import DiscordClient
 
 
 def test_no_token_channel(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
     monkeypatch.delenv("DISCORD_TOKEN", raising=False)
     monkeypatch.delenv("DISCORD_CHANNEL", raising=False)
 
@@ -28,6 +29,7 @@ def test_no_token_channel(monkeypatch):
 
 
 def test_invalid_token(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
     monkeypatch.delenv("DISCORD_TOKEN", raising=False)
     monkeypatch.delenv("DISCORD_CHANNEL", raising=False)
 
@@ -45,6 +47,7 @@ def test_invalid_token(monkeypatch):
 
 
 def test_valid_token_no_channel(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
     monkeypatch.delenv("DISCORD_CHANNEL", raising=False)
 
     client = DiscordClient()
@@ -60,12 +63,16 @@ def test_valid_token_no_channel(monkeypatch):
 
 
 def test_valid_token_and_channel(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     client = DiscordClient()
     client.init()
     client.quit()
 
 
 def test_valid_token_and_channel_combinations(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     token = os.getenv("DISCORD_TOKEN")
     channel = os.getenv("DISCORD_CHANNEL")
     client = DiscordClient(token=token, channel=channel)
@@ -96,6 +103,7 @@ def test_valid_token_and_channel_combinations(monkeypatch: pytest.MonkeyPatch):
 def test_send_message_not_initialized(monkeypatch):
     monkeypatch.delenv("DISCORD_TOKEN", raising=False)
     monkeypatch.delenv("DISCORD_CHANNEL", raising=False)
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
 
     client = DiscordClient()
 
@@ -116,7 +124,9 @@ def test_send_message_not_initialized(monkeypatch):
     client.quit()
 
 
-def test_send_message_and_edit_and_delete_if_initialized():
+def test_send_message_and_edit_and_delete_if_initialized(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     client = DiscordClient()
     client.init()
     assert client._initialized is True
@@ -155,7 +165,9 @@ def test_send_message_and_edit_and_delete_if_initialized():
     client.quit()
 
 
-def test_empty_sending_if_initialized():
+def test_empty_sending_if_initialized(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     client = DiscordClient()
     client.init()
     assert client._initialized is True
@@ -195,6 +207,7 @@ def test_empty_sending_if_initialized():
 def test_embed_if_not_initialized(monkeypatch):
     monkeypatch.delenv("DISCORD_TOKEN", raising=False)
     monkeypatch.delenv("DISCORD_CHANNEL", raising=False)
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
 
     client = DiscordClient()
     with pytest.raises(RuntimeError):
@@ -233,7 +246,9 @@ def test_embed_if_not_initialized(monkeypatch):
     client.quit()
 
 
-def test_embed_if_initialized():
+def test_embed_if_initialized(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     client = DiscordClient()
     client.init()
     assert client._initialized is True
@@ -294,7 +309,9 @@ def test_embed_if_initialized():
 # ----------------------------------------------------------------------------
 
 
-def test_calls_if_not_initialized():
+def test_calls_if_not_initialized(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     client = DiscordClient()
     assert client._initialized is False
 
@@ -317,9 +334,12 @@ def test_calls_if_not_initialized():
     client.quit()
 
 
-def test_channel_finding():
+def test_channel_finding(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     token = os.getenv("DISCORD_TOKEN")
     channel = os.getenv("DISCORD_CHANNEL")
+
     client = DiscordClient(token=token, channel=channel)
     client.init()
     assert client._initialized is True
@@ -389,7 +409,9 @@ def test_channel_finding():
     client.quit()
 
 
-def test_cancel_tasks():
+def test_cancel_tasks(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     client = DiscordClient()
     client.init()
     assert client._initialized is True

@@ -17,6 +17,8 @@ from transformer_discord_notifier.transformers import DiscordProgressCallback
 
 
 def test_minimal_workflow(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     token = os.getenv("DISCORD_TOKEN")
     channel = os.getenv("DISCORD_CHANNEL")
 
@@ -45,7 +47,9 @@ def test_minimal_workflow(monkeypatch):
     dpc.end()
 
 
-def test_client_attr():
+def test_client_attr(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     dpc = DiscordProgressCallback()
     assert dpc.disabled is True
     assert dpc.client is not None
@@ -60,6 +64,8 @@ def test_client_attr():
 
 
 def test_del(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     dpc = DiscordProgressCallback()
     dpc.start()
     assert dpc.disabled is False
@@ -72,6 +78,8 @@ def test_del(monkeypatch):
 
 
 def test_trainer_workflow(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     args = TrainingArguments(output_dir=None)
     state = TrainerState()
     control = TrainerControl()
@@ -177,6 +185,8 @@ def test_trainer_workflow(monkeypatch: pytest.MonkeyPatch):
 
 
 def test_trainer_workflow_disabled(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     args = TrainingArguments(output_dir=None)
     state = TrainerState()
     control = TrainerControl()
@@ -205,6 +215,8 @@ def test_trainer_workflow_disabled(monkeypatch):
 
 
 def test_trainer_workflow_not_local_process_zero(monkeypatch):
+    monkeypatch.delenv("DISCORD_CREATE_EXPERIMENT_CHANNEL", raising=False)
+
     args = TrainingArguments(output_dir=None)
     state = TrainerState()
     control = TrainerControl()

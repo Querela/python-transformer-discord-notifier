@@ -6,7 +6,7 @@ from pprint import pformat
 
 import discord
 
-from typing import Optional, Union, Dict, Set, Any
+from typing import Optional, Union, Dict, List, Set, Any
 
 
 LOGGER = logging.getLogger(__name__)
@@ -33,10 +33,22 @@ class DiscordClient:
     """A blocking wrapper around the asyncio Discord.py client."""
 
     def __init__(
-        self, token: Optional[str] = None, channel: Optional[Union[str, int]] = None
+        self,
+        token: Optional[str] = None,
+        channel: Optional[Union[str, int]] = None,
+        create_experiment_channels: Optional[bool] = None,
+        experiment_category: Optional[str] = None,
+        experiment_name: Optional[str] = None,
     ):
         self._discord_token: Optional[str] = token
         self._discord_channel: Optional[Union[str, int]] = channel
+
+        # environment variable configs/overrides
+        self._experiment_create_channels: Optional[bool] = create_experiment_channels
+        self._experiment_category_channel_name: Optional[str] = experiment_category
+        self._experiment_channel_name: Optional[str] = experiment_name
+        #: stores the category channel instance
+        self._experiment_category_channel: Optional[discord.CategoryChannel] = None
 
         self.all_message_ids: Set[int] = set()
 
@@ -68,6 +80,79 @@ class DiscordClient:
                 except ValueError:
                     pass
                 self._discord_channel = channel
+
+    def _load_config_experiment_channels(self) -> None:
+        if self._experiment_create_channels is None:
+            create_experiment_channels: Optional[Union[str, bool]] = os.environ.get(
+                "DISCORD_CREATE_EXPERIMENT_CHANNEL", None
+            )
+            if create_experiment_channels is not None:
+                create_experiment_channels = create_experiment_channels.lower().strip()
+                if create_experiment_channels in ("y", "yes", "1", "t", "true"):
+                    create_experiment_channels = True
+                else:
+                    create_experiment_channels = False
+            self._experiment_create_channels = bool(create_experiment_channels)
+
+        if not self._experiment_category_channel_name:
+            category = os.environ.get("DISCORD_EXPERIMENT_CATEGORY", None)
+            if category:
+                self._experiment_category_channel_name = category
+
+        if not self._experiment_channel_name:
+            name = os.environ.get("DISCORD_EXPERIMENT_NAME", None)
+            if name:
+                self._experiment_channel_name = name
+        if self._experiment_channel_name:
+            self._experiment_channel_name = (
+                self._experiment_channel_name.lower().replace(" ", "-")
+            )
+
+    # --------------------------------
+
+    @staticmethod
+    def _search_for_textchannel_by_name(
+        guilds: List[discord.Guild],
+        name: str,
+    ) -> Optional[discord.channel.TextChannel]:
+        # all text channels where we can send messages
+        text_channels = [
+            channel
+            for guild in guilds
+            for channel in guild.channels
+            if channel.type == discord.ChannelType.text
+            and channel.permissions_for(guild.me).send_messages
+        ]
+        # only those with matching name
+        text_channels = [channel for channel in text_channels if channel.name == name]
+        # sort which lowest position/id first (created first)
+        text_channels = sorted(text_channels, key=lambda c: (c.position, c.id))
+        if text_channels:
+            return text_channels[0]
+        return None
+
+    @staticmethod
+    def _search_for_categorychannel_by_name(
+        guilds: List[discord.Guild],
+        name: str,
+    ) -> Optional[discord.channel.CategoryChannel]:
+        # all text channels where we can send messages
+        category_channels = [
+            channel
+            for guild in guilds
+            for channel in guild.channels
+            if channel.type == discord.ChannelType.category
+            and channel.permissions_for(guild.me).manage_channels
+        ]
+        # only those with matching name
+        category_channels = [
+            channel for channel in category_channels if channel.name == name
+        ]
+        # sort which lowest position/id first (created first)
+        category_channels = sorted(category_channels, key=lambda c: (c.position, c.id))
+        if category_channels:
+            return category_channels[0]
+        return None
 
     def _find_default_channel(
         self, name: Optional[str] = None, default_name: str = "default"
@@ -117,36 +202,17 @@ class DiscordClient:
         if not guilds:
             raise RuntimeError("No guilds found!")
 
-        def serch_for_channel_by_name(
-            name: str,
-        ) -> Optional[discord.channel.TextChannel]:
-            # all text channels where we can send messages
-            text_channels = [
-                channel
-                for guild in guilds
-                for channel in guild.channels
-                if channel.type == discord.ChannelType.text
-                and channel.permissions_for(guild.me).send_messages
-            ]
-            # only those with matching name
-            text_channels = [
-                channel for channel in text_channels if channel.name == name
-            ]
-            # sort which lowest position/id first (created first)
-            text_channels = sorted(text_channels, key=lambda c: (c.position, c.id))
-            if text_channels:
-                return text_channels[0]
-            return None
-
         channel = None
 
         # search by name if provided
         if name:
-            channel = serch_for_channel_by_name(name)
+            channel = self._search_for_textchannel_by_name(guilds, name)
 
         # search by envvar channel name if possible
         if not channel and isinstance(self._discord_channel, str):
-            channel = serch_for_channel_by_name(self._discord_channel)
+            channel = self._search_for_textchannel_by_name(
+                guilds, self._discord_channel
+            )
 
         # search by envvar channel id if possible
         if not channel and isinstance(self._discord_channel, int):
@@ -157,13 +223,79 @@ class DiscordClient:
 
         # fall back to default channel names
         if not channel:
-            channel = serch_for_channel_by_name(default_name)
+            channel = self._search_for_textchannel_by_name(guilds, default_name)
 
         # fail
         if not channel:
             raise RuntimeError("No Text channel found!")
 
         return channel.id
+
+    def _find_or_create_category_channel(
+        self, name: str
+    ) -> Optional[discord.CategoryChannel]:
+        guilds: List[discord.guild.Guild] = self.client.guilds
+        if not guilds:
+            raise RuntimeError("No guilds found!")
+
+        channel = self._search_for_categorychannel_by_name(guilds, name)
+        if channel:
+            return channel
+
+        # try to create a category channel
+        for guild in guilds:
+            try:
+                coro = guild.create_category(name)
+                future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+                channel: discord.CategoryChannel = future.result()
+                return channel
+            except (
+                discord.errors.Forbidden,
+                discord.errors.HTTPException,
+                discord.errors.InvalidArgument,
+            ) as ex:
+                LOGGER.debug("Error creating category channel: %s", ex)
+            except (asyncio.CancelledError, asyncio.TimeoutError) as ex:
+                LOGGER.debug("Asyncio-Error while creating Channel: %s", ex)
+            except Exception as ex:
+                LOGGER.debug("Error while creating Channel: %s", ex)
+
+        return None
+
+    def _find_or_create_text_channel(
+        self, name: str, category_channel: Optional[discord.CategoryChannel] = None
+    ) -> Optional[discord.TextChannel]:
+        if not category_channel:
+            raise RuntimeError("No category channel!")
+
+        channels = [
+            channel
+            for channel in category_channel.channels
+            if channel.type == discord.ChannelType.text
+            and channel.permissions_for(category_channel.guild.me).send_messages
+            and channel.name == name
+        ]
+        if channels:
+            return channels[0]
+
+        # try to create a text channel
+        try:
+            coro = category_channel.create_text_channel(name)
+            future = asyncio.run_coroutine_threadsafe(coro, self.loop)
+            channel: discord.TextChannel = future.result()
+            return channel
+        except (
+            discord.errors.Forbidden,
+            discord.errors.HTTPException,
+            discord.errors.InvalidArgument,
+        ) as ex:
+            LOGGER.debug("Error creating category channel: %s", ex)
+        except (asyncio.CancelledError, asyncio.TimeoutError) as ex:
+            LOGGER.debug("Asyncio-Error while creating Channel: %s", ex)
+        except Exception as ex:
+            LOGGER.debug("Error while creating Channel: %s", ex)
+
+        return None
 
     # --------------------------------
 
@@ -184,6 +316,7 @@ class DiscordClient:
             return
 
         self._load_credentials()
+        self._load_config_experiment_channels()
 
         self.client = MyClient(loop=self.loop)
 
@@ -254,16 +387,71 @@ class DiscordClient:
         )
         _ = future.result(timeout=30)
 
-        LOGGER.debug("Search for text channel ...")
-        try:
-            self._discord_channel = self._find_default_channel()
-            LOGGER.info(f"Found channel: {self._discord_channel}")
-        except RuntimeError:
-            LOGGER.warning("Found no default channel!")
-            raise
+        if self._experiment_create_channels:
+            LOGGER.debug("Try to create experiment category and channel ...")
+            if not self._experiment_category_channel_name:
+                self._experiment_category_channel_name = "Experiments"
+            self._experiment_category_channel = self._find_or_create_category_channel(
+                self._experiment_category_channel_name
+            )
+
+            if self._experiment_category_channel and self._experiment_channel_name:
+                channel = self._find_or_create_text_channel(
+                    self._experiment_channel_name, self._experiment_category_channel
+                )
+                if channel:
+                    self._discord_channel = channel.id
+
+        if not self._experiment_category_channel:
+            LOGGER.debug("Search for text channel ...")
+            try:
+                self._discord_channel = self._find_default_channel()
+                LOGGER.info(f"Found channel: {self._discord_channel}")
+            except RuntimeError:
+                LOGGER.warning("Found no default channel!")
+                raise
 
         self._initialized = True
         LOGGER.debug("Discord handler initialized.")
+
+    def set_experiment_channel_name(self, name: str, overwrite: bool = False) -> None:
+        """Set experiment channel `name`. Create channel if it does not exist.
+
+        If `override` is ``False`` then a previously set experiment
+        name, e. g. via environment variables, will not be overwritten.
+
+
+        Parameters
+        ----------
+        name : str
+            Name of the experiment (channel name)
+        overwrite : bool, optional
+            whether to override existing channel name, by default False
+
+        Raises
+        ------
+        RuntimeError
+            raised if experiment channel creation failed
+        """
+        if overwrite:
+            self._experiment_channel_name = name
+
+        if self._experiment_category_channel:
+            channel_obj = self._find_or_create_text_channel(
+                name, self._experiment_category_channel
+            )
+            if channel_obj:
+                self._discord_channel = channel_obj.id
+
+            else:
+                # same as in :func:`init(self)`
+                LOGGER.debug("Search for (default) text channel ...")
+                try:
+                    self._discord_channel = self._find_default_channel()
+                    LOGGER.info(f"Found channel: {self._discord_channel}")
+                except RuntimeError:
+                    LOGGER.warning("Found no default channel!")
+                    raise
 
     def _quit_client(self):
         """Internal. Try to properly quit the Discord client if neccessary,
