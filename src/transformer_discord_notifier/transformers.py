@@ -53,6 +53,8 @@ class MessageWrapperTQDMWriter:
                 msg_id=self.msg_id, text=msg_s
             )
         except Exception as ex:
+            # msg: discord.Message = await channel.send(text, embed=embed)
+            # --> aiohttp.client_exceptions.ClientConnectorError
             LOGGER.debug("Swallow exception: %s", ex)
 
     def flush(self):

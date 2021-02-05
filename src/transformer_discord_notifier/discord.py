@@ -539,6 +539,9 @@ class DiscordClient:
     def quit(self):
         """Shutdown the Discord bot.
 
+        # exceptions:
+        # concurrent.futures._base.TimeoutError
+
         Tries to close the Discord bot safely, closes the asyncio loop,
         waits for the background thread to stop (deamonized, so on program
         exit it will quit anyway)."""
@@ -623,6 +626,7 @@ class DiscordClient:
         if msg_id is None:
             return None
 
+        # TODO: only use: get_partial_message(msg_id) -> PartialMessage ?
         try:
             channel: discord.TextChannel = self.client.get_channel(
                 self._discord_channel
